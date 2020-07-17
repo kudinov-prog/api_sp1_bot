@@ -16,23 +16,25 @@ bot = telegram.Bot(token=TELEGRAM_TOKEN)
 
 
 def parse_homework_status(homework):
-    homework_name = homework['homework_name']
-    status = homework['status']
+    homework_name = homework.get('homework_name')
+    status = homework.get('status')
 
-    if homework_name and status:
-        status_list = ('approved', 'rejected')
-        if status in status_list:
-            if status == 'rejected':
-                verdict = 'К сожалению в работе нашлись ошибки.'
-            else:
-                verdict = 'Ревьюеру всё понравилось, можно приступать к следующему уроку.'
-            return f'У вас проверили работу "{homework_name}"!\n\n{verdict}'
+    if not homework_name and not status:
+        return 'Неверный ответ сервера'
+
+    status_list = ('approved', 'rejected')
+    if status in status_list:
+        if status == 'rejected':
+            verdict = 'К сожалению в работе нашлись ошибки.'
+        else:
+            verdict = 'Ревьюеру всё понравилось, можно приступать к следующему уроку.'
+        return f'У вас проверили работу "{homework_name}"!\n\n{verdict}'
     return 'Неверный ответ сервера'
 
 
 def get_homework_statuses(current_timestamp):
     if current_timestamp is None:
-        current_timestamp = 0
+        current_timestamp = int(time.time())
     headers = {'Authorization': f'OAuth {PRACTICUM_TOKEN}'}
     params = {
         'from_date': current_timestamp
@@ -43,8 +45,11 @@ def get_homework_statuses(current_timestamp):
             params=params, headers=headers
         )
         return homework_statuses.json()
+
+    except requests.exceptions.RequestException:
+        logging.error("Запрос не выполнен")
     except Exception:
-        logging.debug(f"Запрос не выполнен", exc_info=True)
+        logging.exception("Неизвестная ошибка")
 
 
 def send_message(message):
